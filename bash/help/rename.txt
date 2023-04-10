@@ -1,0 +1,11 @@
+rename loc new [old]
+
+    Use to rename file extensions. 
+    
+    Exits with status code 1 if it is called with incorrect or less than 2 arguments.
+    
+    loc     Folder location containing the files to be renamed
+    new     New extension that the files should have
+    [old]   Old extension to be replaced, optional. If excluded, only files without 
+            extensions will be considered and extended with the new extension.  
+

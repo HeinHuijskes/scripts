@@ -1,0 +1,26 @@
+#!/bin/bash
+
+_addalias() 
+{
+    local cur prev
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    if [[ "$COMP_CWORD" -eq 1 ]] ; then
+        COMPREPLY=($(ls $HOME/scripts/bash | grep $cur 2>/dev/null))
+        return 0
+    fi
+
+    if [[ "$COMP_CWORD" -eq 2 ]] ; then
+        exists=$(cat $HOME/scripts/.bash_aliases | grep ^"alias ${prev}=")
+        isprgm=$(which $prev)
+        if [ -z "$exists" ] && [ -z "$isprgm" ] ; then
+            COMPREPLY=("${prev}")
+            return 0
+        fi
+    fi
+    
+    return 0
+}
+complete -F _addalias addalias

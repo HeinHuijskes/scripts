@@ -1,0 +1,56 @@
+#!/bin/bash
+
+
+_addalias() 
+{
+    local cur prev
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    if [[ "$COMP_CWORD" -eq 1 ]] ; then
+        COMPREPLY=($(ls $HOME/scripts/bash | grep $cur 2>/dev/null))
+        return 0
+    fi
+
+    if [[ "$COMP_CWORD" -eq 2 ]] ; then
+        exists=$(cat $HOME/scripts/.bash_aliases | grep ^"alias ${prev}=")
+        isprgm=$(which $prev)
+        if [ -z "$exists" ] && [ -z "$isprgm" ] ; then
+            COMPREPLY=("${prev}")
+            return 0
+        fi
+    fi
+    
+    return 0
+}
+complete -F _addalias addalias
+
+
+_ftest() 
+{
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="--help --verbose --version"
+
+    array=$(find ./tests/e2e -iname *${cur}*.js 2>/dev/null)
+    if [ $# ] ; then
+        array=$(find ~/PycharmProjects/LieneschBackend/frontend/tests/e2e -iname *${cur}*.js 2>/dev/null)
+    fi
+    # Slice all newlines, then separate based on '.' (since all files end on .js)
+    IFS='.' read -r -a arr <<< "${array//[$'\t\r\n ']}"
+    # Remove the junk from the strings, leaving only the test names
+    arr=("${arr[@]##*/}")
+    # Remove the trailing js
+    len=$((${#arr[@]}-1))
+    COMPREPLY=("${arr[@]:0:$len}")
+    return 0
+
+    # if [[ ${cur} == -* ]] ; then
+        # COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        # return 0
+    # fi
+}
+complete -F _ftest ftest
