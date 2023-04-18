@@ -3,7 +3,7 @@
 while getopts ":h" opt ; do
     case $opt in 
         h) # Display help
-            cat $HOME/scripts/bash/help/{-file-};
+            echo $HOME/scripts/bash/help/{-file-};
             exit;;
     esac
 done

@@ -3,7 +3,7 @@
 while getopts ":h" option ; do
     case $option in 
         h) # Display help
-            cat $HOME/scripts/bash/help/rename.txt;
+            echo $HOME/scripts/bash/help/rename.txt;
             exit;;
     esac
 done

@@ -3,7 +3,7 @@
 while getopts ":h" opt ; do
     case $opt in 
         h) # Display help
-            cat 'Watch out for gambling addiction';
+            echo 'Watch out for gambling addiction';
             exit;;
     esac
 done
