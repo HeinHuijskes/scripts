@@ -23,6 +23,7 @@ retval=''   # [?Any] Function return value
 speed=1     # [Number] Speed factor, must be a whole number of 0 or higher
 res=''      # [Array|String] Result of a pull
 scrlen=0    # [Number] Screen string length
+stspd=0.02  # [Number] Decimal number describing stick speed
 
 erase=0     # Control code for printing
 
@@ -126,8 +127,8 @@ stickAnimation () {
     tput cup 1 $scrlen
     for i in {2..10} ; do
         tput cup $(($i-1)) $scrlen
-        if [ $i -le 6 ] ; then
-            if [ $i -eq 6 ] ; then
+        if [ $i -le 7 ] ; then
+            if [ $i -eq 7 ] ; then
                 printf ' - '
             else
                 printf '   '
@@ -138,12 +139,12 @@ stickAnimation () {
         tput cup $i $scrlen
         printf '( )'
         
-        sleep 0.05;
+        sleep $stspd;
     done
-    for i in {2..9} ; do
-        tput cup $((12-$i)) $scrlen
-        if [ $i -le 6 ] ; then
-            if [ $i -eq 6 ] ; then
+    for i in {3..10} ; do
+        tput cup $((13-$i)) $scrlen
+        if [ $i -le 7 ] ; then
+            if [ $i -eq 7 ] ; then
                 printf ' - '
             else
                 printf '   '
@@ -151,10 +152,10 @@ stickAnimation () {
         else
             printf ' | '
         fi
-        tput cup $((11-$i)) $scrlen
+        tput cup $((12-$i)) $scrlen
         printf '( )'
         
-        sleep 0.05;
+        sleep $stspd;
     done
     return;
 }
