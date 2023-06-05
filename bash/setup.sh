@@ -22,4 +22,12 @@ ln -s $HOME/scripts/.bash_aliases $HOME/.bash_aliases 2>/dev/null;
 
 echo 'Generating symlink for bash completion'
 sudo ln -s ~/scripts/bash/completion/all /etc/bash_completion.d/all
+
+echo 'Activating boot script'
+crontab -e
+echo '@reboot ~/scripts/bash/onboot.sh'
+
+
+
 echo 'Done'
+
