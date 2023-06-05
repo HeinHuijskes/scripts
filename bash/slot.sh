@@ -1,32 +1,69 @@
 #!/bin/bash
 
-while getopts ":h" opt ; do
-    case $opt in 
-        h) # Display help
-            echo 'Watch out for gambling addiction';
-            exit;;
-    esac
-done
-
-
 ### SLOTMACHINE GAME ###
 ### Bash remake of a small slotmachine game made originally for a graphical calculator
-### Probably quite poorly coded, since it is really made for a much different language/system
+### Probably quite poorly coded, since I am still starting to learn bash
 ########################
 
-coins=0     # [Number] Number of coins
+coins=10    # [Number] Number of coins
 help=''     # [String] Help text
 sym=''      # [String] Symbols on the cards
 bet=0       # [Number] Bet amount
 screen=''   # [String] Screen display
 retval=''   # [?Any] Function return value
-speed=1     # [Number] Speed factor, must be a whole number of 0 or higher
+speed=2     # [Number] Speed factor, must be a whole number of 0 or higher
 res=''      # [Array|String] Result of a pull
 scrlen=0    # [Number] Screen string length
 stspd=0.02  # [Number] Decimal number describing stick speed
+crank=0.1   # [Number] Handle animation speed
+erase=0     # [?] Control code for printing
+debug=0     # [?] Debug mode
+symbols=1   # [?] ?
 
-erase=0     # Control code for printing
 
+while getopts "hs:c:d" opt ; do
+    case $opt in 
+        h) # Display help
+            echo 'Watch out for gambling addiction';
+            exit
+            ;;
+        s) # Set speed
+            setspeed="$OPTARG"
+            case $setspeed in
+                instant)
+                    speed=0
+                    crank=0
+                    echo 'Set speed to instant';;
+                slow)
+                    speed=3
+                    crank=0.2
+                    echo 'Set speed to slow';;
+                medium)
+                    speed=2
+                    crank=0.1
+                    echo 'Set speed to medium';;
+                fast)
+                    speed=1
+                    crank=0.05
+                    echo 'Set speed to fast';;
+                *)
+                    speed=2
+                    crank=0.1
+                    echo 'Unknown, set speed to standard';
+            esac
+            ;;
+        c)
+            coins=$OPTARG
+            if [ $(($coins-$coins)) != 0 ] || [ $coins -gt 999 ] 2>/dev/null; then
+                coins=10;
+            fi
+            ;;
+        d)  # Debug mode
+            debug=1
+            ;;
+    esac
+    sleep 1
+done
 
 ### INTERFACE ###
 # Variables:
@@ -55,13 +92,13 @@ interface="\
 
 initialize () {
     tput civis
-    sym[0]='ABC@$0#';
-    sym[1]='ABC@$0#';
-    sym[2]='ABC@$0#';
+    syms[0]='7-BAR-$-<3-U-0-#-@-(?)';
+    syms[1]='7-BAR-$-<3-U-0-#-@-(?)';
+    syms[2]='7-BAR-$-<3-U-0-#-@-(?)';
+    IFS='-' read -ra sym <<< "${syms[0]}"
+    symbols=${#sym}
     help='WELCOME!'
     erase=$(tput el)
-    speed=1
-    coins=10;
     setScreen;
     scrlen=24
 }
@@ -74,7 +111,11 @@ rotate () {
         col=$((${@:$i:1}-1))
         if [ $col -lt 0 ] || [ $col -ge 3 ] ; then continue; fi;
         len=${#sym[$col]}
-        sym[$col]="${sym[$col]:1:$(($len-1))}${sym[$col]:0:1}"
+        sym=("${syms[$col]}")
+        IFS='-' read -ra sym <<< "$sym"
+        echo ${sym[@]}
+        syms[$col]="${sym[@]:1:$(($len-1))}${sym[@]:0:1}"
+        echo ${syms[$col]}
     done
 }
 
@@ -104,9 +145,12 @@ setScreen () {
     padString "$help" 17;
     screen="${screen/<message-------->/$retval}";
     local i j
+    # TODO: make these loops dynamic
     for i in {0..2} ; do
         for j in {1..3} ; do
-            padString "${sym[$i]:$(($j-1)):1}" 3;
+            sym=("${syms[$i]}")
+            IFS='-' read -ra sym <<< "$sym"
+            padString "${sym[$(($j-1))]}" 3;
             screen="${screen/<$(($i*3+$j))>/"$retval"}";
         done
     done
@@ -114,7 +158,9 @@ setScreen () {
 
 draw () {
     setScreen;
-    tput cup 0 0;
+    if [ "$debug" != 1 ] ; then
+        tput cup 0 0;
+    fi
     local strings string;
     readarray -t strings <<< "$screen"
     
@@ -124,6 +170,9 @@ draw () {
 }
 
 stickAnimation () {
+    if [ $crank == "0" ] ; then
+        return 0;
+    fi
     tput cup 1 $scrlen
     for i in {2..10} ; do
         tput cup $(($i-1)) $scrlen
@@ -164,13 +213,13 @@ pull () {
     stickAnimation;
     help='ROLLING'
     coins=$(($coins-1));
-    random[0]=$(($RANDOM % ${#sym[0]} + ${#sym[0]}*$speed))
-    random[1]=$(($RANDOM % ${#sym[1]} + ${#sym[1]}*$speed))
-    random[2]=$(($RANDOM % ${#sym[2]} + ${#sym[2]}*$speed))
+    random[0]=$(($RANDOM % $symbols + $symbols*$speed))
+    random[1]=$(($RANDOM % $symbols + $symbols*$speed))
+    random[2]=$(($RANDOM % $symbols + $symbols*$speed))
     for ((i=1;i<${random[0]};i++)) ; do
         rotate 1 2 3;
         draw;
-        sleep 0.05;
+        sleep $crank;
     done;
     for ((i=1;i<${random[1]};i++)) ; do
         rotate 2 3;
@@ -180,7 +229,7 @@ pull () {
     for ((i=1;i<${random[2]};i++)) ; do
         rotate 3;
         draw;
-        sleep 0.05;
+        sleep $crank;
     done;
     res[0]="${sym[0]:1:1}"
     res[1]="${sym[1]:1:1}"
@@ -190,7 +239,7 @@ pull () {
 result () {
     if [ "${res[0]}" == "${res[1]}" -a "${res[1]}" == "${res[2]}" ] ; then
         # All three symbols are the same
-        if [ "${res[0]}" == '$' ] ; then
+        if [ "${res[0]}" == '7' ] ; then
             help='JACKPOT!'
             coins=$(($coins+100))
         else
@@ -207,6 +256,7 @@ result () {
             help='NO PRICE!'
         fi
     fi
+    # TODO: save game state by writing values to a file
     draw;
 }
 
