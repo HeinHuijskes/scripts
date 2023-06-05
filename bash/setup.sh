@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Set up structure
+mkdir $HOME/scripts/bash/logs;
+mkdir $HOME/scripts/bash/completion;
+mkdir $HOME/scripts/bash/help
+touch $HOME/scripts/bash/logs/debug-logs
+
 
 ### Replace .bash_aliases while keeping it's contents
 
