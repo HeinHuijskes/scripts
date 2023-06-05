@@ -1,5 +1,13 @@
 #!/bin/bash
 
+debugger="$HOME/scripts/bash/debug.sh"
+$debugger -c
+
+function log() {
+    $debugger ${@};
+    $debugger "";
+}
+
 while getopts ":h" opt ; do
     case $opt in 
         h) # Display help
