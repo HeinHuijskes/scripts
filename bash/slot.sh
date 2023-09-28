@@ -15,7 +15,7 @@ function log() {
 
 coins=10    # [Number] Number of coins
 help=''     # [String] Help text
-sym=''      # [String] Symbols on the cards
+syms=''      # [String] Symbols on the cards
 bet=0       # [Number] Bet amount
 screen=''   # [String] Screen display
 retval=''   # [?Any] Function return value
@@ -32,6 +32,7 @@ symbols=1   # [?] ?
 while getopts "hs:c:d" opt ; do
     case $opt in 
         h) # Display help
+            # TODO: Expand help text to show different options
             echo 'Watch out for gambling addiction';
             exit
             ;;
@@ -103,14 +104,14 @@ initialize () {
     tput civis
 
     # Set the rotating symbol strings 
-    syms[0]='7-BAR-$-<3-U-0-#-@-(?)';
-    syms[1]='7-BAR-$-<3-U-0-#-@-(?)';
-    syms[2]='7-BAR-$-<3-U-0-#-@-(?)';
+    syms[0]='7 BAR $ <3 U 0 # @ (?)'; 
+    syms[1]='7 BAR $ <3 U 0 # @ (?)'; 
+    syms[2]='7 BAR $ <3 U 0 # @ (?)';
 
     # Load a symbol string into an array
-    IFS='-' read -ra sym <<< "${syms[0]}"
+    IFS=' ' read -ra sym <<< "${syms[0]}"
     # Count the number of unique symbols
-    symbols=${#sym}
+    symbols=${#sym[@]}
     # Set the initially displayed text
     help='WELCOME!'
     # Set an erase variable that can clear the rest of a line
@@ -131,22 +132,16 @@ rotate () {
     for ((i=1;i<$(($#+1));i++)) ; do
         # Find the correct column based on the currently considered argument
         col=$((${@:$i:1}-1))
-        ###log $col
+
         # Skip if the selected column is out of scope, NOT DYNAMIC YET
         if [ $col -lt 0 ] || [ $col -ge 3 ] ; then continue; fi;
-        # Get the length of the string belonging to the selected column
-        len=${#sym[$col]}
-        
-        # Load the string into a variable
-        sym=("${syms[$col]}")
-        # Parse the loaded string to an array
-        IFS='-' read -ra sym <<< "$sym"
 
-        ###log ${sym[@]}
+        # Parse the string of the right column into an array
+        IFS=' ' read -ra sym <<< "${syms[$col]}"
         
         # Shift the symbol array by removing the first symbol and appending it to the end.
         # Then parse it to a string and replace the old column string by the new one
-        syms[$col]="${sym[@]:1:$(($len-1))}${sym[@]:0:1}"
+        syms[$col]="${sym[@]:1} ${sym[@]:0:1}"
     done
 }
 
@@ -185,16 +180,16 @@ setScreen () {
     
     # Add the output text to the screen
     padString "$help" 17;
-    screen="${screen/<message-------->/$retval}";
-
+    
+    ### TODO: check if <message--> should be encased in a string
     # Loop over the symbols and add them to the screen
+    screen="${screen/<message-------->/$retval}";
+    
     local i j
     ### TODO: make these loops dynamic ###
     for i in {0..2} ; do
-        # Select the correct column
-        sym=("${syms[$i]}")
-        # Parse the selected column array to a string
-        IFS='-' read -ra sym <<< "$sym"
+        # Parse the correct column array to a string
+        IFS=' ' read -ra sym <<< "${syms[$i]}"
 
         for j in {1..3} ; do
             # Select a symbol from the string, and pad it
@@ -265,7 +260,6 @@ stickAnimation () {
     return;
 }
 
-# Spend a coin to roll once
 pull () {
     stickAnimation;
     help='ROLLING'
@@ -276,7 +270,7 @@ pull () {
     for ((i=1;i<${random[0]};i++)) ; do
         rotate 1 2 3;
         draw;
-        sleep $crank;
+        sleep 0.05;
     done;
     for ((i=1;i<${random[1]};i++)) ; do
         rotate 2 3;
@@ -286,11 +280,12 @@ pull () {
     for ((i=1;i<${random[2]};i++)) ; do
         rotate 3;
         draw;
-        sleep $crank;
+        sleep 0.05;
     done;
-    res[0]="${sym[0]:1:1}"
-    res[1]="${sym[1]:1:1}"
-    res[2]="${sym[2]:1:1}"
+    for i in {0..2} ; do
+        IFS=' ' read -ra sym <<< "${syms[$i]}"
+        res[$i]="${sym[1]}"
+    done
 }
 
 # Calculate the result of a roll and draw them to the screen
@@ -317,7 +312,6 @@ result () {
     ### TODO: save game state by writing values to a file ###
     draw;
 }
-
 # Run the game loop
 run () {
     initialize;
