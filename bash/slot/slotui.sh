@@ -6,22 +6,22 @@ function="None"
 explanation="TUI for slot machine
 OPTIONS:
 
-  -h
-    Show this explanation
+    -h
+        Show this explanation
 
-  -d [arg]
+    -d [arg]
      
-     initui (mini)
-       Initializes the ui and returns it as a string. Use option mini for the smaller ui.
+         initui (mini)
+             Initializes the ui and returns it as a string. Use option mini for the smaller ui.
      
-     draw [arg]
-       Clears the screen and draws the ui provided as an argument to the screen. 'initui' can be piped into this directly.
+         draw [arg]
+             Clears the screen and draws the ui provided as an argument to the screen. 'initui' can be piped into this directly.
      
-     crank (mini)
-       Draws the crank animation on the screen. Presumes that a ui is already drawn to the screen, although this is not necessary.
+         crank (mini)
+             Draws the crank animation on the screen. Presumes that a ui is already drawn to the screen, although this is not necessary.
        
-     reversecrank (!mini)
-       Same as crank, but in the opposite direction. Not yet functional for small ui"
+         reversecrank (!mini)
+             Same as crank, but in the opposite direction. Not yet functional for small ui"
 
 while getopts "hd:" opt ; do
     case $opt in 

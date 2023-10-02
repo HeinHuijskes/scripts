@@ -15,11 +15,42 @@ coins=10    # [Number] Number of coins
 speed=2     # [Number] Speed factor, must be a whole number of 0 or higher
 crank=0.1   # [Number] Handle animation speed
 
-while getopts "hs:c:d" opt ; do
+explanation="Bash script for a small slot machine game
+OPTIONS:
+
+    -h
+        Show this explanation
+       
+    -c [arg]
+        Ever wanted more coins? Now you can! Enter any amount between 0 and 999 to have a different amount of coins than the boring regular 10.
+
+    -s [arg]
+        Set a speed for the animations and symbol rotations. Animation speedup is currently disabled.
+     
+            instant
+                Show no animations and don't rotate the symbols more than needed
+       
+            fast
+                Pretty fast animation speed, one extra rotation of the symbols.
+       
+            medium
+                Decent animation speed, two extra symbol rotations.
+       
+            slow
+                Slow animation speed, three extra symbol rotations.
+       
+            [any]
+                Default to medium speed for unrecognizable speed strings.
+     
+   "
+       
+     
+
+while getopts "hs:c" opt ; do
     case $opt in 
         h) # Display help
             # TODO: Expand help text to show different options
-            echo 'Watch out for gambling addiction';
+            echo "$explanation";
             exit
             ;;
         s) # Set speed
