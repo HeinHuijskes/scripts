@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$HOME/scripts/bash/slot/"
+
 function="None"
 explanation="TUI for slot machine
 OPTIONS:
@@ -35,9 +37,9 @@ while getopts "hd:" opt ; do
 done
 
 initui () {
-    fileloc="slot.txt"
+    fileloc="./slot.txt"
     if [ "$1" = "mini" ] ; then
-        fileloc="minislot.txt"
+        fileloc="./minislot.txt"
     fi
 
     IFS=''
@@ -50,12 +52,21 @@ initui () {
     echo "${ui}"
 }
 
-draw () {
+drawer () {
     clear
     readarray -t ui <<< "${1}"
     for string in "${ui[@]}" ; do
         printf "${string}\n"
     done
+}
+
+symbolarray() {
+    if [ "$1" = "mini" ] ; then
+        symbols="7 BAR $ <3 U 0 # @ (?)"
+    else
+        symbols=""
+    fi
+    echo "$symbols"
 }
 
 minicrank() {
@@ -99,7 +110,7 @@ minicrank() {
 crank() {
     if [ "$1" = "mini" ] ; then
         minicrank
-        return 1;
+        return;
     fi
     
     crankstart=9
@@ -179,15 +190,40 @@ reversecrank() {
     done
 }
 
+# Pad a string equally on both sides to a desired length
+# Expects $1 [string]: the string to be padded, and $2 [number]: desired string length, where ${#1} <= $2
+padstring() {
+    # Check preconditions
+    # Fail if there are less than 2 arguments set or when the desired string length is smaller than the current length
+    if [ -z $2 ] || [ ${#1} -gt ${2} ]; then return 1 ; fi;
+
+    local offset padding back;
+    # Calculate needed total padding and offsets
+    padding=$(($2 - ${#1}));
+    offset=$(($padding / 2));
+    back=$(($2-$offset));
+    # Add offset to the string and return it
+    echo "$(printf "%${2}s" "$(printf "%-${back}s" "$1")")"
+}
+
+replacestring () {
+    string="$1"
+    locator="$2"
+    body="$3"
+    string=$(padstring "$string" "${#locator}")
+    body="${body/"$locator"/"$string"}";
+    echo "$body"
+}
+
 
 if [ "$function" = "None" ] ; then
     return 0
 fi
 
-functions=("initui" "draw" "crank" "reversecrank")
+functions=("initui" "drawer" "crank" "reversecrank" "replacestring")
 for fun in ${functions[@]}; do
     if [ "$function" = "$fun" ] ; then
-        $function "$3"
+        $function "$3" "$4" "$5"
     fi 
 done
 

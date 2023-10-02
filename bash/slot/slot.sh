@@ -1,6 +1,8 @@
 #!/bin/bash
 
-debugger="$HOME/scripts/bash/debug.sh"
+cd "$HOME/scripts/bash/slot/"
+
+debugger="../debug.sh"
 $debugger -c
 
 function log() {
@@ -8,26 +10,10 @@ function log() {
     $debugger "";
 }
 
-### SLOTMACHINE GAME ###
-### Bash remake of a small slotmachine game made originally for a graphical calculator
-### Probably quite poorly coded, since I am still starting to learn bash
-########################
-
+# INITIALIZE VALUES #
 coins=10    # [Number] Number of coins
-help=''     # [String] Help text
-syms=''      # [String] Symbols on the cards
-bet=0       # [Number] Bet amount
-screen=''   # [String] Screen display
-retval=''   # [?Any] Function return value
 speed=2     # [Number] Speed factor, must be a whole number of 0 or higher
-res=''      # [Array|String] Result of a pull
-scrlen=0    # [Number] Screen string length
-stspd=0.02  # [Number] Decimal number describing stick speed
 crank=0.1   # [Number] Handle animation speed
-erase=0     # [?] Control code for printing
-debug=0     # [?] Debug mode
-symbols=1   # [?] ?
-
 
 while getopts "hs:c:d" opt ; do
     case $opt in 
@@ -67,68 +53,59 @@ while getopts "hs:c:d" opt ; do
                 coins=10;
             fi
             ;;
-        d)  # Debug mode
-            debug=1
-            ;;
     esac
     sleep 1
 done
 
-### INTERFACE ###
-# Variables:
-# Usage: <variable> [type | string length]
-#
-# <C>       [int|3]  Amount of coins
-# <1-9>     [str|3]  Visible slot characters
-# <message> [str|17] Message for users (max 17 char)
+# IMPORT UI FUNCTIONS FROM ./slotui.sh #
+source "./slotui.sh"
 
-interface="\
-............................
-.       SLOTMACHINE        .
-.Coins:                 ( ).
-.<C>                     | .
-.    |[<1>][<4>][<7>]|   | .
-.    =================   | .
-.    |[<2>][<5>][<8>]|   - .
-.    =================     .
-.    |[<3>][<6>][<9>]|     .
-.                          .
-.    <message-------->     .
-.                          .
-............................
-"
-#################
 
 initialize () {
+    # Show the cursor on script exit
+    trap "tput cnorm" EXIT
     # Hide the cursor
     tput civis
 
-    # Set the rotating symbol strings 
-    syms[0]='7 BAR $ <3 U 0 # @ (?)'; 
-    syms[1]='7 BAR $ <3 U 0 # @ (?)'; 
-    syms[2]='7 BAR $ <3 U 0 # @ (?)';
+    # Set the rotating symbol strings
+    local sym="$(symbolarray mini)";
+    syms=("$sym" "$sym" "$sym")
 
     # Load a symbol string into an array
-    IFS=' ' read -ra sym <<< "${syms[0]}"
-    # Count the number of unique symbols
-    symbols=${#sym[@]}
-    # Set the initially displayed text
+    IFS=' ' read -ra sym <<< "$sym"
+    symbolsize=${#sym[@]}
     help='WELCOME!'
-    # Set an erase variable that can clear the rest of a line
-    erase=$(tput el)
-    # Update the screen string, see also the corresponding function setScreen()
-    setScreen;
-    # Set the screen string width
-    scrlen=24
+    drawScreen;
 }
 
-# Rotates given columns, 1 character at a time
+drawScreen () {
+    screen="$(initui mini)"
+    screen=$(replacestring "$coins" '<C>' "$screen")
+    screen=$(replacestring "$help" '<message-------->' "$screen")
+    
+    local i j
+    for i in {0..2} ; do
+        # Parse the correct column array to a string
+        local sym
+        IFS=' ' read -ra sym <<< "${syms[$i]}"
+
+        for j in {1..3} ; do
+            # Select a symbol and locator, and add it to the screen
+            symbol="${sym[$(($j-1))]}"
+            locator="<$(($i*3+$j))>"
+            screen=$(replacestring "$symbol" "$locator" "$screen")
+        done
+    done
+    drawer "$screen"
+}
+
+# ROTATE GIVEN COLUMNS, 1 SYMBOL AT A TIME #
 rotate () {
     # Limit and check parameters
     if [ -z $1 ] || [ $# -gt 25 ] ; then return 1; fi;
 
     local i len;
-    # Loop over all provided function arguments, which are columns (may contain duplicates)
+    # Loop over all provided function arguments, which correspond to columns (may contain the same column multiple times), up to 25 columns total (this is an arbitrary limit)
     for ((i=1;i<$(($#+1));i++)) ; do
         # Find the correct column based on the currently considered argument
         col=$((${@:$i:1}-1))
@@ -137,6 +114,7 @@ rotate () {
         if [ $col -lt 0 ] || [ $col -ge 3 ] ; then continue; fi;
 
         # Parse the string of the right column into an array
+        local sym
         IFS=' ' read -ra sym <<< "${syms[$col]}"
         
         # Shift the symbol array by removing the first symbol and appending it to the end.
@@ -145,144 +123,30 @@ rotate () {
     done
 }
 
-# Pad a string correctly
-# Expects $1 [string]: the string, and $2 [number]: desired padded string length, where ${#1} <= $2
-padString () {
-    # Check preconditions
-    if [ -z $2 ] || [ ${#1} -gt ${2} ]; then return 1 ; fi;
-
-    local offset padding back;
-    # Calculate needed total padding and offsets
-    padding=$(($2 - ${#1}));
-    offset=$(($padding / 2));
-    back=$(($2-$offset));
-    # Add offset to the string
-    retval=$(printf "%${2}s" "$(printf "%-${back}s" "$1")");
-}
-
-getUserInput () {
-    ### TODO: IMPLEMENT ###
-    if [ -n $1 ] ; then
-        echo $1;
-    fi
-    retval='INPUTTED'
-    return 0;
-}
-
-# Generate the screen string and set it
-setScreen () {
-    # Copy the screen template string
-    screen="$interface";
-
-    # Add the current amount of coins to the screen
-    padString "$coins" 3;
-    screen="${screen/<C>/$retval}";
-    
-    # Add the output text to the screen
-    padString "$help" 17;
-    
-    ### TODO: check if <message--> should be encased in a string
-    # Loop over the symbols and add them to the screen
-    screen="${screen/<message-------->/$retval}";
-    
-    local i j
-    ### TODO: make these loops dynamic ###
-    for i in {0..2} ; do
-        # Parse the correct column array to a string
-        IFS=' ' read -ra sym <<< "${syms[$i]}"
-
-        for j in {1..3} ; do
-            # Select a symbol from the string, and pad it
-            padString "${sym[$(($j-1))]}" 3;
-            # Add the symbol to the screen
-            screen="${screen/<$(($i*3+$j))>/"$retval"}";
-        done
-    done
-}
-
-# Draw the current game state to the screen
-draw () {
-    # Generate the screen from template
-    setScreen;
-    # Do not reset the cursor position in debug mode
-    if [ "$debug" != 1 ] ; then
-        tput cup 0 0;
-    fi
-
-    local strings string;
-    # Parse the screen string to an array of lines
-    readarray -t strings <<< "$screen"
-
-    # Print every string to the screen and add a newline
-    for string in "${strings[@]}" ; do
-        printf "${string}${erase}\n"
-    done
-}
-
-# Play the stick animation
-stickAnimation () {
-    if [ $crank == "0" ] ; then
-        return 0;
-    fi
-    tput cup 1 $scrlen
-    for i in {2..10} ; do
-        tput cup $(($i-1)) $scrlen
-        if [ $i -le 7 ] ; then
-            if [ $i -eq 7 ] ; then
-                printf ' - '
-            else
-                printf '   '
-            fi
-        else
-            printf ' | '
-        fi
-        tput cup $i $scrlen
-        printf '( )'
-        
-        sleep $stspd;
-    done
-    for i in {3..10} ; do
-        tput cup $((13-$i)) $scrlen
-        if [ $i -le 7 ] ; then
-            if [ $i -eq 7 ] ; then
-                printf ' - '
-            else
-                printf '   '
-            fi
-        else
-            printf ' | '
-        fi
-        tput cup $((12-$i)) $scrlen
-        printf '( )'
-        
-        sleep $stspd;
-    done
-    return;
-}
-
 pull () {
-    stickAnimation;
+    minicrank
     help='ROLLING'
     coins=$(($coins-1));
-    random[0]=$(($RANDOM % $symbols + $symbols*$speed))
-    random[1]=$(($RANDOM % $symbols + $symbols*$speed))
-    random[2]=$(($RANDOM % $symbols + $symbols*$speed))
+    random[0]=$(($RANDOM % $symbolsize + $symbolsize*$speed))
+    random[1]=$(($RANDOM % $symbolsize + $symbolsize*$speed))
+    random[2]=$(($RANDOM % $symbolsize + $symbolsize*$speed))
     for ((i=1;i<${random[0]};i++)) ; do
         rotate 1 2 3;
-        draw;
+        drawScreen;
         sleep 0.05;
     done;
     for ((i=1;i<${random[1]};i++)) ; do
         rotate 2 3;
-        draw;
+        drawScreen;
         sleep 0.05;
     done;
     for ((i=1;i<${random[2]};i++)) ; do
         rotate 3;
-        draw;
+        drawScreen;
         sleep 0.05;
     done;
     for i in {0..2} ; do
+        local sym
         IFS=' ' read -ra sym <<< "${syms[$i]}"
         res[$i]="${sym[1]}"
     done
@@ -309,21 +173,22 @@ result () {
             help='NO PRICE!'
         fi
     fi
-    ### TODO: save game state by writing values to a file ###
-    draw;
 }
 # Run the game loop
 run () {
     initialize;
     clear;
-    draw;
+    drawScreen;
+    echo "PRESS ENTER TO PLAY!"
     while [ $coins -gt 0 ] ; do
         read;
         pull;
         result;
+        ### TODO: save game state by writing values to a file ###
+        drawScreen;
     done
     help='GAME OVER!'
-    draw;
+    drawScreen;
     tput cvvis;
 }
 
